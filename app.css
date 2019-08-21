@@ -69,6 +69,7 @@ h1 {
 #calculator-buttons .buttons-container {
     display: flex;
     justify-content: space-around;
+    flex-wrap: wrap;
 }
 
 #calculator-buttons .buttons-container li {

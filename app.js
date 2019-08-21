@@ -3,13 +3,15 @@ const dataCtrl = (function(){
         'operator' : ['*', '-', '+', '/'],
         'number' : ['1','2','3','4','5','6','7','8','9'],
         'decimals' : ['.'],
-        'functions' : [] 
+        'functions' : ['sin', 'cos', 'tan', 'In', 'log', '!', '^', 'sqrt'],
+        'constants' : ['pi', 'e'],
+        'brackets' : ['(', ')']
     }
 
     const dictionaryRules = {
         'operator' : {
             'correctInputs' : ['number', 'functions'],
-            'replace' : ['operator']
+            'replace' : ['operator'],
         },
         'number' :{
             'correctInputs' : ['number', 'functions', 'decimals', 'operator'],
@@ -21,7 +23,11 @@ const dataCtrl = (function(){
         }, 
         'functions' : {
             'correctInputs' : ['*'],
-            'replace' : ['functions']
+            'replace' : ['functions'],
+            'sequence' : {
+                'sin' : ['number'],
+                'cos' : ['number'],
+            }
         },   
     }
 
@@ -111,10 +117,36 @@ const UICtrl = (function(){
         'calculatorButtons' : '#calculator-buttons',
         'displayResult' : '#calculator-display .results',
         'deleteButton' : '.delete-button',
+        'moreButton' : '.more-button',
+        'buttonLists' : '.buttons-container li',
+        'buttonsContainer' : '.buttons-container'
     }
+
+    const functionButtons = ['sin', 'cos', 'tan', 'In', 'log', '!', 'pi', 'e', '^', '(', ')', 'sqrt'];
 
     const translation = {
         
+    }
+
+    const functionLayout = function() {
+        removeButtons();
+        const buttonsContainer = document.querySelector(UISelectors.buttonsContainer);
+        functionButtons.forEach(functionButton => {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.setAttribute('value', functionButton);
+            button.textContent = functionButton;
+            li.appendChild(button);
+            li.style.width = '32%';
+            buttonsContainer.appendChild(li);
+        });
+    }
+
+    const removeButtons = function(){
+        const buttonsContainer = document.querySelector(UISelectors.buttonsContainer);
+        while(buttonsContainer.firstElementChild) {
+            buttonsContainer.firstElementChild.remove();
+        }
     }
 
     const displayEquation = function(equation) {
@@ -124,6 +156,7 @@ const UICtrl = (function(){
     return {
         UISelectors,
         displayEquation,
+        functionLayout
     }
 })();
 
@@ -133,17 +166,22 @@ const appCtrl = (function(dataCtrl, UICtrl){
     const loadedEventListeners = function() {
         let buttons = document.querySelectorAll(htmlSelectors.calculatorButtons);
         const deleteButton = document.querySelector(htmlSelectors.deleteButton);
+        const moreButton = document.querySelector(htmlSelectors.moreButton);
         buttons = Array.from(buttons);
         buttons.forEach(button => {
             button.addEventListener('click', updateEquation); 
         });
-
         deleteButton.addEventListener('click', clearData);
+        moreButton.addEventListener('click', changeFunState);
     }
 
     const clearData = function(){
         dataCtrl.clearData();
         UICtrl.displayEquation(dataCtrl.getEquation());
+    }
+
+    const changeFunState = function(){
+        UICtrl.functionLayout();
     }
 
     const updateEquation = function(e) {
