@@ -1,20 +1,31 @@
 const dataCtrl = (function(){
     const dictionary = {
         'operator' : ['*', '-', '+', '/'],
-        'number' : ['1','2','3','4','5','6','7','8','9'],
+        'number' : ['1','2','3','4','5','6','7','8','9','0'],
         'decimals' : ['.'],
-        'functions' : ['sin', 'cos', 'tan', 'In', 'log', '!', '^', 'sqrt'],
+        'functions' : ['sin(', 'cos(', 'tan(', 'In(', 'log(', '!', '^', 'sqrt('],
         'constants' : ['pi', 'e'],
         'brackets' : ['(', ')']
     }
 
+    const translation = {
+        evalTranslation : {
+            'sin(' : 'Math.sin(',
+            'cos(' : 'Math.cos(',
+            'tan(' : 'Math.tan(',
+        },
+        displayTranslation : {
+
+        }
+    }
+
     const dictionaryRules = {
         'operator' : {
-            'correctInputs' : ['number', 'functions'],
+            'correctInputs' : ['number', 'functions', 'brackets'],
             'replace' : ['operator'],
         },
         'number' :{
-            'correctInputs' : ['number', 'functions', 'decimals', 'operator'],
+            'correctInputs' : ['number', 'functions', 'decimals', 'operator', 'brackets'],
             'replace' : []
         },
         'decimals' : {
@@ -22,13 +33,13 @@ const dataCtrl = (function(){
             'replace' : ['decimals']
         }, 
         'functions' : {
-            'correctInputs' : ['*'],
+            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets'],
             'replace' : ['functions'],
-            'sequence' : {
-                'sin' : ['number'],
-                'cos' : ['number'],
-            }
-        },   
+        },
+        'brackets' : {
+            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets'],
+            'replace' : [],
+        }
     }
 
     const data = {
@@ -49,6 +60,7 @@ const dataCtrl = (function(){
     }
 
     const addInput = function(input) {
+        if(input === '=') return true;
         let currentInputType = '';
 
         for(let index in dictionary) {
@@ -58,11 +70,12 @@ const dataCtrl = (function(){
                 if(data.currentRules.replaceInputs !== null) {
                     if(data.currentRules.replaceInputs.indexOf(currentInputType) !== -1) {
                         if(dictionaryRules[currentInputType]) {
-                            if(input !== '=') {
-                                data.equation[data.equation.length - 1] = input;
-                                data.currentInput = input;
-                                data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
-                                data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
+                            data.currentInput = input;
+                            data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
+                            data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
+                            switch(currentInputType) {
+                                default:
+                                    data.equation[data.equation.length - 1] = input;
                             }
                             return true;
                         }
@@ -74,23 +87,40 @@ const dataCtrl = (function(){
                     if(data.currentRules.acceptedInputs.indexOf(currentInputType) === -1) return false;
                 }
 
-                data.currentInput = input;
+
 
                 if(dictionaryRules[currentInputType]) {
+                    data.currentInput = input;
                     data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
                     data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
+                    switch(currentInputType) {
+                        default:
+                            data.equation.push(input);
+                    }
                 }
             }
         }
-
-        if(input !== '=') {
-            data.equation.push(input);
-        }
+        console.log(data.equation);
 
         return true;
     }
 
     const evalEquation = function() {
+        data.equation.forEach((element, index) => {
+            if(translation.evalTranslation[element]) {
+                data.equation[index] = translation.evalTranslation[element];
+            }
+            for(let dictionaryIndex in dictionary) {
+                if(dictionary[dictionaryIndex].indexOf(element) !== -1) {
+                    data.equation[index] = {
+                        element : element,
+                        type : dictionaryIndex
+                    }
+                }
+            }
+        });
+        console.log(data.equation);
+        return false;
         const result = eval(data.equation.join(''));
         data.equation = [result];
     }
@@ -122,14 +152,10 @@ const UICtrl = (function(){
         'buttonsContainer' : '.buttons-container'
     }
 
-    const functionButtons = ['sin', 'cos', 'tan', 'In', 'log', '!', 'pi', 'e', '^', '(', ')', 'sqrt'];
-
-    const translation = {
-        
-    }
+    const functionButtons = ['sin(', 'cos(', 'tan(', 'In(', 'log(', '!', 'pi', 'e', '^', '(', ')', 'sqrt('];
 
     const functionLayout = function() {
-        removeButtons();
+        //removeButtons();
         const buttonsContainer = document.querySelector(UISelectors.buttonsContainer);
         functionButtons.forEach(functionButton => {
             const li = document.createElement('li');
