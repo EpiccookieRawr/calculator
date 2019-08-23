@@ -106,6 +106,7 @@ const dataCtrl = (function(){
     }
 
     const evalEquation = function() {
+        let finalEquation = [];
         data.equation.forEach((element, index) => {
             if(translation.evalTranslation[element]) {
                 data.equation[index] = translation.evalTranslation[element];
@@ -119,7 +120,16 @@ const dataCtrl = (function(){
                 }
             }
         });
-        console.log(data.equation);
+
+        data.equation.forEach((element, index) => {
+            if(element.type == 'functions') {
+                if(data.equation[index - 1].type === 'number') {
+                    finalEquation.push({ element : '*', type : 'operator'});
+                }
+            }
+            finalEquation.push(element);
+        });
+        console.log(finalEquation);
         return false;
         const result = eval(data.equation.join(''));
         data.equation = [result];
