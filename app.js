@@ -57,7 +57,8 @@ const dataCtrl = (function(){
             'acceptedInputs' : null,
             'replaceInputs' : null,
         },
-        'inputQueue' : false,
+        'insideFunction' : false,
+        'currentIndex' : 0
     }
 
     const getEquation = function() {
@@ -88,7 +89,6 @@ const dataCtrl = (function(){
                             return true;
                         }
                     }
-                    
                 }
 
                 if(data.currentRules.acceptedInputs !== null) {
@@ -96,42 +96,40 @@ const dataCtrl = (function(){
                 }
 
                 if(dictionaryRules[currentInputType]) {
-                    let index = data.equation.length - 1;
+                    const index = (data.equation.length - 1 < 0) ? 0 : data.equation.length - 1;
+                    const allInputs = [];
                     data.currentInput = input;
                     data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
                     data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
+                    if(!data.insideFunction) data.currentIndex = index;
+
                     switch(currentInputType) {
                         case 'functions' :
-                            if(data.equation[index].type === 'number') data.equation.push({ element : '*', type : 'operator'});
-                            data.equation.push({'element' : input, 'type' : currentInputType});
-                            data.equation.push({element : '(', type : 'brackets'});
+                            if(data.equation[data.currentIndex].type === 'number') allInputs.push({ element : '*', type : 'operator'});
+                            allInputs.push({'element' : input, 'type' : currentInputType}, {element : '(', type : 'brackets'});
+                            data.equation.splice(data.currentIndex + 1, 0, ...allInputs);
+                            if(data.insideFunction) data.currentIndex += allInputs.length;
                             break;
                         case 'functionsValueRequired' :
-                            data.equation.splice(index, 0, {'element' : input, 'type' : currentInputType},  {element : '(', type : 'brackets'});
-                            data.equation.push({element : ',', type : 'operator'}, {element : ')', type : 'brackets'});
-                            data.inputQueue = true;
-                            break;
-                        case 'brackets':
-                            if(data.inputQueue === true) data.equation.splice(index - 1, 0, {element : '(', type : 'brackets'});
+                            allInputs.push({'element' : input, 'type' : currentInputType},  {element : '(', type : 'brackets'},
+                            data.equation[data.currentIndex], {element : ',', type : 'operator'}, {element : ')', type : 'brackets'})
+                            data.equation.splice(data.currentIndex, 1, ...allInputs);
+                            let equationElements = data.equation.map(equationElement => {return equationElement.element});
+                            data.currentIndex = equationElements.lastIndexOf(',');
+                            data.insideFunction = true;
                             break;
                         default:
-                            if(data.inputQueue) {
-                                data.equation.splice(index, 0, {'element' : input, 'type' : currentInputType});
-                            } else {
-                                data.equation.push({'element' : input, 'type' : currentInputType});
-                            }
+                            allInputs.push({'element' : input, 'type' : currentInputType});
+                            data.equation.splice(data.currentIndex + 1, 0, ...allInputs);
+                            if(data.insideFunction) data.currentIndex += allInputs.length;
                     }
 
-                    if(data.inputQueue) {
-                        if(input === ')') {
-                            data.inputQueue == false;
-                        }
-                    }
+                    if(data.insideFunction && input === ')') data.insideFunction = false;
                 }
             }
         }
 
-        const equationElements = data.equation.map(equationElement => {return equationElement.element});
+        let equationElements = data.equation.map(equationElement => {return equationElement.element});
         console.log(equationElements);
 
         return true;
