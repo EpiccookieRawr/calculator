@@ -3,49 +3,51 @@ const dataCtrl = (function(){
         'operator' : ['*', '-', '+', '/'],
         'number' : ['1','2','3','4','5','6','7','8','9','0'],
         'decimals' : ['.'],
-        'functions' : ['sin', 'cos', 'tan', 'ln', 'log', '!', 'sqrt'],
-        'functionsValueRequired' : ['^'],
-        'constants' : ['pi', 'e'],
+        'functions' : ['sin', 'cos', 'tan', 'ln', 'log', 'sqrt'],
+        'functionsTwoParams' : ['^'],
+        'constants' : ['PI', 'E', 'Ans'],
         'brackets' : ['(', ')']
     }
 
     const translation = {
-        evalTranslation : {
-            'sin' : 'Math.sin',
-            'cos' : 'Math.cos',
-            'tan' : 'Math.tan',
-            'ln' : 'Math.log',
-            'sqrt' : 'Math.sqrt',
-            '^' : 'pow'
-        },
-        displayTranslation : {
-
-        }
+        'sin' : ['Math.sin'],
+        'cos' : ['Math.cos'],
+        'tan' : ['Math.tan'],
+        'ln' : ['Math.log'],
+        'sqrt' : ['Math.sqrt'],
+        '^' : ['Math.pow'],
+        'log' : ['1' , '/' , 'Math.LN10', '*', 'Math.log'],
+        'PI' : ['Math.PI'],
+        'E' : ['Math.E']
     }
 
     const dictionaryRules = {
         'operator' : {
-            'correctInputs' : ['number', 'functions', 'brackets', 'functionsValueRequired'],
+            'correctInputs' : ['number', 'functions', 'brackets', 'functionsTwoParams'],
             'replace' : ['operator'],
         },
         'number' :{
-            'correctInputs' : ['number', 'functions', 'decimals', 'operator', 'brackets', 'functionsValueRequired'],
+            'correctInputs' : ['number', 'functions', 'decimals', 'operator', 'brackets', 'functionsTwoParams'],
             'replace' : []
         },
         'decimals' : {
             'correctInputs' : ['number'],
             'replace' : ['decimals']
-        }, 
-        'functions' : {
-            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsValueRequired'],
-            'replace' : ['functions', 'functionsValueRequired'],
         },
-        'functionsValueRequired' : {
-            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsValueRequired'],
-            'replace' : ['functions', 'functionsValueRequired'],
+        'functions' : {
+            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsTwoParams'],
+            'replace' : [],
+        },
+        'functionsTwoParams' : {
+            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsTwoParams'],
+            'replace' : ['functionsTwoParams'],
+        },
+        'constants' : {
+            'correctInputs' : ['number', 'functions', 'operator', 'brackets', 'functionsTwoParams'],
+            'replace' : []
         },
         'brackets' : {
-            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsValueRequired'],
+            'correctInputs' : ['number', 'functions', 'constants', 'brackets', 'functionsTwoParams'],
             'replace' : [],
         }
     }
@@ -57,6 +59,7 @@ const dataCtrl = (function(){
             'acceptedInputs' : null,
             'replaceInputs' : null,
         },
+        'answer' : 1,
         'insideFunction' : false,
         'currentIndex' : 0
     }
@@ -72,6 +75,7 @@ const dataCtrl = (function(){
     const addInput = function(input) {
         if(input === '=') return true;
         let currentInputType = '';
+        let equationElements = data.equation.map(equationElement => {return equationElement.element});
 
         for(let index in dictionary) {
             if(dictionary[index].indexOf(input) !== -1) {
@@ -79,13 +83,13 @@ const dataCtrl = (function(){
                 if(data.currentRules.replaceInputs !== null) {
                     if(data.currentRules.replaceInputs.indexOf(currentInputType) !== -1) {
                         if(dictionaryRules[currentInputType]) {
+                            switch(currentInputType) {
+                                default:
+                                    data.equation[equationElements.lastIndexOf(data.currentInput)] = {'element' : input, 'type' : currentInputType};
+                            }
                             data.currentInput = input;
                             data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
                             data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
-                            switch(currentInputType) {
-                                default:
-                                    data.equation[data.equation.length - 1] = {'element' : input, 'type' : currentInputType};
-                            }
                             return true;
                         }
                     }
@@ -102,19 +106,17 @@ const dataCtrl = (function(){
                     data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
                     data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
                     if(!data.insideFunction) data.currentIndex = index;
-
                     switch(currentInputType) {
                         case 'functions' :
-                            if(data.equation[data.currentIndex].type === 'number') allInputs.push({ element : '*', type : 'operator'});
                             allInputs.push({'element' : input, 'type' : currentInputType}, {element : '(', type : 'brackets'});
                             data.equation.splice(data.currentIndex + 1, 0, ...allInputs);
                             if(data.insideFunction) data.currentIndex += allInputs.length;
                             break;
-                        case 'functionsValueRequired' :
+                        case 'functionsTwoParams' :
                             allInputs.push({'element' : input, 'type' : currentInputType},  {element : '(', type : 'brackets'},
                             data.equation[data.currentIndex], {element : ',', type : 'operator'}, {element : ')', type : 'brackets'})
                             data.equation.splice(data.currentIndex, 1, ...allInputs);
-                            let equationElements = data.equation.map(equationElement => {return equationElement.element});
+                            equationElements = data.equation.map(equationElement => {return equationElement.element});
                             data.currentIndex = equationElements.lastIndexOf(',');
                             data.insideFunction = true;
                             break;
@@ -123,31 +125,51 @@ const dataCtrl = (function(){
                             data.equation.splice(data.currentIndex + 1, 0, ...allInputs);
                             if(data.insideFunction) data.currentIndex += allInputs.length;
                     }
-
-                    if(data.insideFunction && input === ')') data.insideFunction = false;
+                    if(data.insideFunction) {
+                        if(currentInputType !== 'brackets') data.insideFunction = false;
+                        if(input === ')') data.insideFunction = false;
+                    }
                 }
             }
         }
-
-        let equationElements = data.equation.map(equationElement => {return equationElement.element});
+        equationElements = data.equation.map(equationElement => {return equationElement.element});
         console.log(equationElements);
-
         return true;
     }
 
     const evalEquation = function() {
         let finalEquation = [];
 
-        data.equation.forEach((equationElement, index) => {
-            if(translation.evalTranslation[equationElement.element]) {
-                data.equation[index].element = translation.evalTranslation[equationElement.element];
+        data.equation.forEach((equationElement, equationIndex) => {
+            const translatedElement = translation[equationElement.element];
+            if(translatedElement !== undefined) {
+                if(translatedElement.length > 0) {
+                    translatedElement.forEach(element => {
+                        finalEquation.push(element);
+                    });
+                }
+            } else {
+                finalEquation.push(equationElement.element);
+            }
+
+            const nextValue = data.equation[equationIndex + 1];
+            if(nextValue !== undefined){
+                if(['number', 'constants'].indexOf(equationElement.type) !== -1) {
+                    if(['brackets', 'functions', 'functionsTwoParams'].indexOf(nextValue.type) !== -1 && nextValue.element !== ')') finalEquation.push('*');
+                }
+                if(['brackets'].indexOf(equationElement.type) !== -1) {
+                    if(['number', 'functions', 'functionsTwoParams', 'constants'].indexOf(nextValue.type) !== -1 && equationElement.element !== '(') {
+                        finalEquation.splice(finalEquation.length, 0, '*');
+                    }
+                    if(['brackets'].indexOf(nextValue.type) !== -1 && equationElement.element !== ')'){
+                        finalEquation.splice(finalEquation.length, 0, '*');
+                    }
+                }
             }
         });
-
-        const finalEquationElements = finalEquation.map(equationElement => {return equationElement.element});
-        console.log(finalEquationElements);
+        console.log(finalEquation);
+        //const result = eval(finalEquation.join(''));
         return;
-        const result = eval(finalEquationElements.join(''));
         data.equation = [{element : result, type : 'number'}];
     }
 
@@ -178,7 +200,7 @@ const UICtrl = (function(){
         'buttonsContainer' : '.buttons-container'
     }
 
-    const functionLayoutSequence = ['sin', 'cos', 'tan', 'ln', 'log', '!', 'pi', 'e', '^', '(', ')', 'sqrt'];
+    const functionLayoutSequence = ['Ans', 'sin', 'cos', 'tan', 'ln', 'log', 'sqrt', 'PI', 'E', '^', '(', ')'];
 
     const functionLayout = function() {
         //removeButtons();
