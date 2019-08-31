@@ -1,72 +1,63 @@
 const dataCtrl = (function(){
     const dictionary = {
         'operator' : ['*', '-', '+', '/'],
-        'number' : ['1','2','3','4','5','6','7','8','9','0'],
-        'decimals' : ['.'],
+        'number' : ['1','2','3','4','5','6','7','8','9','0', '.'],
         'functions' : ['sin', 'cos', 'tan', 'ln', 'log', 'sqrt'],
         'functionsTwoParams' : ['^'],
         'constants' : ['PI', 'E', 'Ans'],
         'brackets' : ['(', ')']
     }
 
-    const translation = {
-        'sin' : ['Math.sin'],
-        'cos' : ['Math.cos'],
-        'tan' : ['Math.tan'],
-        'ln' : ['Math.log'],
-        'sqrt' : ['Math.sqrt'],
-        'log' : ['1' , '/' , 'Math.LN10', '*', 'Math.log'],
-        'PI' : ['Math.PI'],
-        'E' : ['Math.E']
-    }
-
-    const translationFunction = {
-        '^' : function(equation, index) {
-            return {
+    const insertFunctionMethod = {
+        '^' : function(equation, indexes) {
+            console.log(indexes);
+            if(indexes.length > 0) {
+                equation.splice(indexes[0], 1, ',');
+                equation.splice(indexes[1], 0, 'pow', '(');
+                equation.push(')');
             }
-        },
-        '!' : function(equation) {
             return equation;
         }
     }
 
+    const translation = {
+        'sin' : 'Math.sin',
+        'cos' : 'Math.cos',
+        'tan' : 'Math.tan',
+        'ln' : 'Math.log',
+        'sqrt' : 'Math.sqrt',
+        'log' : '1/Math.LN10*Math.log',
+        'PI' : 'Math.PI',
+        'E' : 'Math.E',
+        'pow' : 'Math.pow'
+    }
+
     const dictionaryRules = {
         'operator' : {
-            'correctInputs' : ['number', 'functions', 'brackets', 'functionsTwoParams'],
-            'replace' : ['operator'],
+            'correctInputs' : ['number', 'functions', 'brackets', 'functionsTwoParams', 'operator']
         },
         'number' :{
-            'correctInputs' : ['number', 'functions', 'decimals', 'operator', 'brackets', 'functionsTwoParams'],
-            'replace' : []
-        },
-        'decimals' : {
-            'correctInputs' : ['number'],
-            'replace' : ['decimals']
+            'correctInputs' : ['number', 'functions', 'decimals', 'operator', 'brackets', 'functionsTwoParams']
         },
         'functions' : {
-            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsTwoParams'],
-            'replace' : [],
+            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets']
         },
         'functionsTwoParams' : {
-            'correctInputs' : ['number', 'decimals', 'functions', 'constants', 'brackets', 'functionsTwoParams'],
-            'replace' : [],
+            'correctInputs' : ['number', 'functions', 'constants', 'brackets', 'functionsTwoParams']
         },
         'constants' : {
-            'correctInputs' : ['number', 'functions', 'operator', 'brackets', 'functionsTwoParams'],
-            'replace' : []
+            'correctInputs' : ['number', 'functions', 'operator', 'brackets', 'functionsTwoParams', 'constants']
         },
         'brackets' : {
-            'correctInputs' : ['number', 'functions', 'constants', 'brackets', 'functionsTwoParams'],
-            'replace' : [],
+            'correctInputs' : ['number', 'functions', 'constants', 'brackets', 'functionsTwoParams', 'operator']
         }
     }
 
     const data = {
         'equation' : [],
-        'currentInput' : null,
+        'currentType' : null,
         'currentRules' : {
             'acceptedInputs' : null,
-            'replaceInputs' : null,
         },
         'answer' : 1,
     }
@@ -81,103 +72,125 @@ const dataCtrl = (function(){
 
     const addInput = function(input) {
         if(input === '=') return true;
-        let currentInputType = '';
 
         for(let type in dictionary) {
             if(dictionary[type].indexOf(input) !== -1) {
-                currentInputType = type;
-                // if(data.currentRules.replaceInputs !== null) {
-                //     if(data.currentRules.replaceInputs.indexOf(currentInputType) !== -1) {
-                //         if(dictionaryRules[currentInputType] !== null) {
-                //             data.currentInput = input;
-                //             data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
-                //             data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
-                //             switch(currentInputType) {
-                //                 case 'functions' :
-                //                     data.equation.splice(data.equation.length -2, 2,{'element' : input, 'type' : currentInputType}, {element : '(', type : 'brackets'});
-                //                     break;
-                //                 default:
-                //                     data.equation[data.equation.length -1] = {'element' : input, 'type' : currentInputType};
-                //             }
-                //             return true;
-                //         }
-                //     }
-                // }
+                if(data.currentRules.acceptedInputs !== null) {
+                    if(data.currentRules.acceptedInputs.indexOf(type) === -1) return false;
+                }
 
-                // if(data.currentRules.acceptedInputs !== null) {
-                //     if(data.currentRules.acceptedInputs.indexOf(currentInputType) === -1) return false;
-                // }
-
-                if(dictionaryRules[currentInputType]) {
-                    data.currentInput = input;
-                    data.currentRules.acceptedInputs = dictionaryRules[currentInputType].correctInputs;
-                    data.currentRules.replaceInputs = dictionaryRules[currentInputType].replace;
-                    switch(currentInputType) {
+                if(dictionaryRules[type]) {
+                    switch(type) {
+                        case 'operator' :
+                            if(data.currentInputType === 'operator') {
+                                data.equation[data.equation.length - 1] = input;
+                            } else {
+                                data.equation.push(input);
+                            }
+                            break;
                         case 'functions' :
                             data.equation.push(input, '(');
                             break;
                         default:
                             data.equation.push(input);
                     }
+
+                    data.currentInputType = type;
+                    data.currentRules.acceptedInputs = dictionaryRules[type].correctInputs;
                 }
             }
         }
-
-        //let equationElements = data.equation.map(equationElement => {return equationElement.element});
         console.log(data.equation);
         return true;
     }
 
     const evalEquation = function() {
+        let insert = [];
         let finalEquation = [];
+
         data.equation.forEach((equationElement, equationIndex) => {
+            if(dictionary.functionsTwoParams.indexOf(equationElement) !== -1) {
+                let bracketCount = 0;
+                let stopIndex = 0;
+                let numberCount = 0;
+                let beginningIndex = 0;
+                const insertFunction = {
+                    type : equationElement,
+                    indexes : [equationIndex]
+                };
+
+                if(dictionary.number.indexOf(data.equation[equationIndex - 1]) !== -1) {
+                    stopIndex = 1;
+                    while(dictionary.number.indexOf(data.equation[equationIndex - stopIndex]) !== -1) {
+                        numberCount++;
+                        stopIndex++;
+                    }
+                    insertFunction.indexes.push(equationIndex - numberCount);
+                } else {
+                    bracketCount = 1;
+                    stopIndex = 1;
+                    if(dictionary.brackets.indexOf(data.equation[equationIndex - stopIndex]) !== -1){
+                        while(bracketCount != 0) {
+                            if((data.equation[equationIndex - stopIndex]) !== undefined) {
+                                stopIndex++;
+                                if (data.equation[equationIndex - stopIndex] === '(') {
+                                    bracketCount--;
+                                } else if (data.equation[equationIndex - stopIndex] === ')'){
+                                    bracketCount++;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        beginningIndex = equationIndex - stopIndex;
+                        if(dictionary.functions.indexOf(data.equation[equationIndex - stopIndex - 1]) !== -1) beginningIndex = equationIndex - stopIndex - 1;
+                        insertFunction.indexes.push(beginningIndex);
+                    }
+                }
+                insert.unshift(insertFunction);
+            }
+
             finalEquation.push(equationElement);
-
-            // const translatedElement = translation[equationElement.element];
-            // if(translatedElement !== undefined) {
-            //     if(translatedElement.length > 0) {
-            //         translatedElement.forEach(element => {
-            //             finalEquation.push(element);
-            //         });
-            //     }
-            // } else {
-            //     finalEquation.push(equationElement.element);
-            // }
-
-            // const nextValue = data.equation[equationIndex + 1];
-            // if(nextValue !== undefined){
-            //     if(['number', 'constants'].indexOf(equationElement.type) !== -1) {
-            //         if(['brackets', 'functions', 'functionsTwoParams'].indexOf(nextValue.type) !== -1 && nextValue.element !== ')') finalEquation.push('*');
-            //     }
-            //     if(['brackets'].indexOf(equationElement.type) !== -1) {
-            //         if(['number', 'functions', 'functionsTwoParams', 'constants'].indexOf(nextValue.type) !== -1 && equationElement.element !== '(') {
-            //             finalEquation.splice(finalEquation.length, 0, '*');
-            //         }
-            //         if(['brackets'].indexOf(nextValue.type) !== -1 && equationElement.element !== ')'){
-            //             finalEquation.splice(finalEquation.length, 0, '*');
-            //         }
-            //     }
-            // }
         });
+
+        if(insert.length > 0) {
+            insert.forEach(insertFunc => {
+                if(insertFunctionMethod[insertFunc.type] !== null) {
+                   finalEquation = insertFunctionMethod[insertFunc.type](finalEquation,insertFunc.indexes);
+                }
+           });
+        }
+
         console.log(finalEquation);
-        const translateFunctionIndex = []
-        finalEquation.forEach((finalEquationElement, finalEquationIndex) => {
-            if(translationFunction[finalEquationElement]) {
-                
-                translateFunctionIndex.push({
-                    index : finalEquationIndex,
-                    type : finalEquationElement
-                });
+
+        const multiplyIndexes = [];
+        finalEquation.forEach((finalElement, finalIndex) => {
+            //handle implicit multiplication
+            if(finalElement == ')') {
+                if([...dictionary.functions, ...dictionary.brackets,...dictionary.constants,...dictionary.number].indexOf(finalEquation[finalIndex+1]) !== -1){
+                    multiplyIndexes.unshift(finalIndex+1);
+                }
+            }
+
+            if([...dictionary.constants, ...dictionary.number].indexOf(finalElement) !== -1) {
+                if([...dictionary.functions, '(', ...dictionary.constants].indexOf(finalEquation[finalIndex+1]) !== -1) {
+                    multiplyIndexes.unshift(finalIndex+1);
+                }
+            }
+
+            if(translation[finalElement]) {
+                finalEquation[finalIndex] = translation[finalElement];
             }
         });
-        console.log(translateFunctionIndex);
 
-        if(translateFunctionIndex.length > 0) {
-            translateFunctionIndex.forEach((translateElement, translateIndex) => {
-                finalEquation = translationFunction[translateElement.type](translateElement.index, finalEquation);
+        if(multiplyIndexes.length > 0) {
+            multiplyIndexes.forEach(multiplyIndex => {
+                finalEquation.splice(multiplyIndex,0,'*');
             });
         }
-        //const result = eval(finalEquation.join(''));
+
+        console.log(finalEquation);
+
         return;
         data.equation = [{element : result, type : 'number'}];
     }
