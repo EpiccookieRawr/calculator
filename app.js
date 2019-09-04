@@ -17,7 +17,7 @@ const dataCtrl = (function(){
         'log' : '1/Math.LN10*Math.log',
         'PI' : 'Math.PI',
         'E' : 'Math.E',
-        'pow' : 'Math.pow'
+        'pow' : 'Math.pow',
     }
 
     const dictionaryRules = {
@@ -43,7 +43,6 @@ const dataCtrl = (function(){
 
     const insertFunctionMethod = {
         '^' : function(equation, indexes) {
-            console.log(indexes);
             if(indexes.length > 0) {
                 equation.splice(indexes[0], 1, ',');
                 equation.splice(indexes[1], 0, 'pow', '(');
@@ -97,12 +96,24 @@ const dataCtrl = (function(){
                 }
             }
         }
+        console.log(data.equation);
         return true;
     }
 
     const evalEquation = function() {
         let insert = [];
         let finalEquation = [];
+        let missingBrackets = 0;
+
+        data.equation.forEach((equationElement) => {
+            if(equationElement === '(') {
+                missingBrackets++;
+            } else if(equationElement === ')') {
+                missingBrackets--;
+            }
+        });
+
+        if(missingBrackets !== 0) data.equation.push(...Array(missingBrackets).fill(')'));
 
         data.equation.forEach((equationElement, equationIndex) => {
             if(dictionary.functionsTwoParams.indexOf(equationElement) !== -1) {
@@ -196,6 +207,8 @@ const dataCtrl = (function(){
             if(translation[finalElement]) {
                 finalEquation[finalIndex] = translation[finalElement];
             }
+
+            if(finalElement === 'Ans') finalEquation[finalIndex] = data.answer;
         });
 
         if(multiplyIndexes.length > 0) {
@@ -206,36 +219,47 @@ const dataCtrl = (function(){
 
         let result = finalEquation.join('');
         console.log(result);
-        result = eval(result);
-        console.log(result);
-        data.equation = [result];
+
+        try {
+            result = eval(result);
+            console.log(result);
+            data.equation = [result];
+            data.answer = result;
+        } catch(e) {
+            data.equation = ['error'];
+        }
         return;
     }
 
     const clearData = function() {
         data.equation = [];
-        data.currentInput = null;
+        data.currentType = null;
         data.currentRules.acceptedInputs = null;
-        data.currentRules.replaceInputs = null;
+    }
+
+    const clearAns = function() {
+        data.answer = 1;
     }
 
     return {
         getEquation,
         addInput,
         evalEquation,
-        clearData
+        clearData,
+        clearAns
     }
 
 })();
 
 const UICtrl = (function(){
     const UISelectors = {
-        'calculatorButtons' : '#calculator-buttons',
+        'calculatorButtons' : '.calculator-buttons',
         'displayResult' : '#calculator-display .results',
         'deleteButton' : '.delete-button',
         'moreButton' : '.more-button',
         'buttonLists' : '.buttons-container li',
-        'buttonsContainer' : '.buttons-container'
+        'buttonsContainer' : '.buttons-container',
+        'calculatorDisplay' : '#calculator-display'
     }
 
     displayTranslation = {
@@ -266,12 +290,12 @@ const UICtrl = (function(){
     }
 
     const functionLayoutSequence = ['Ans', 'sin', 'cos', 'tan', 'ln', 'log', 'sqrt', 'PI', 'E', '^', '(', ')'];
-
     const basicLayoutSequence = ['7', '8', '9', '/', '4', '5','6','*','1','2','3','-','.','0','=','+'];
 
     const functionLayout = function() {
-        removeButtons();
-        const buttonsContainer = document.querySelector(UISelectors.buttonsContainer);
+        const buttonsContainer = document.querySelector(UISelectors.calculatorButtons);
+        const ul = document.createElement('ul');
+        ul.className = 'buttons-container';
         functionLayoutSequence.forEach(functionButton => {
             const li = document.createElement('li');
             const button = document.createElement('button');
@@ -279,14 +303,16 @@ const UICtrl = (function(){
             button.textContent = functionButton;
             li.appendChild(button);
             li.style.width = '32%';
-            buttonsContainer.appendChild(li);
+            ul.appendChild(li);
         });
+        buttonsContainer.appendChild(ul);
         currentState.state = 'function';
     }
 
     const basicLayout = function() {
-        removeButtons();
-        const buttonsContainer = document.querySelector(UISelectors.buttonsContainer);
+        const buttonsContainer = document.querySelector(UISelectors.calculatorButtons);
+        const ul = document.createElement('ul');
+        ul.className = 'buttons-container';
         basicLayoutSequence.forEach(functionButton => {
             const li = document.createElement('li');
             const button = document.createElement('button');
@@ -299,13 +325,14 @@ const UICtrl = (function(){
             }
             li.appendChild(button);
             li.style.width = '24%';
-            buttonsContainer.appendChild(li);
+            ul.appendChild(li);
         });
+        buttonsContainer.appendChild(ul);
         currentState.state = 'basic';
     }
 
     const removeButtons = function(){
-        const buttonsContainer = document.querySelector(UISelectors.buttonsContainer);
+        const buttonsContainer = document.querySelector(UISelectors.calculatorButtons);
         while(buttonsContainer.firstElementChild) {
             buttonsContainer.firstElementChild.remove();
         }
@@ -324,7 +351,8 @@ const UICtrl = (function(){
         displayEquation,
         functionLayout,
         basicLayout,
-        getCurrentState
+        getCurrentState,
+        removeButtons
     }
 })();
 
@@ -345,11 +373,13 @@ const appCtrl = (function(dataCtrl, UICtrl){
 
     const clearData = function(){
         dataCtrl.clearData();
+        dataCtrl.clearAns();
         UICtrl.displayEquation(dataCtrl.getEquation());
     }
 
     const changeState = function(){
         const currentState = UICtrl.getCurrentState().state;
+        UICtrl.removeButtons();
         if(currentState === 'basic'){
             UICtrl.functionLayout();
         } else {
@@ -367,17 +397,25 @@ const appCtrl = (function(dataCtrl, UICtrl){
 
         if(input !== null) {
             if(dataCtrl.addInput(input)) {
-                if(input === '=') {
-                    dataCtrl.evalEquation();
-                }
-
+                if(input === '=') dataCtrl.evalEquation();
                 UICtrl.displayEquation(dataCtrl.getEquation());
+                if(input === '=') dataCtrl.clearData();
             }
         }
     }
 
+    const fullLayout = function() {
+        const calculatorDisplay = document.querySelector(htmlSelectors.calculatorDisplay);
+        // const moreButton = document.querySelector(htmlSelectors.moreButton);
+        // if(calculatorDisplay.offsetWidth === 800) {
+        //     UICtrl.functionLayout();
+        //     moreButton.set
+        // };
+    }
+
     const init = function() {
         console.log('App is initialized....');
+        fullLayout();
         loadedEventListeners();
     }
 
