@@ -74,10 +74,15 @@ const dataCtrl = (function(){
                     if(data.currentRules.acceptedInputs.indexOf(type) === -1) return false;
                 }
 
+                if(data.equation.length === 0) {
+                    if(['-', '+', '/', ...dictionary.functionsTwoParams].indexOf(type) !== -1) return false;
+                }
+
                 if(dictionaryRules[type]) {
                     switch(type) {
                         case 'operator' :
                             if(data.currentInputType === 'operator') {
+                                if(data.equation.length == 1) return false;
                                 data.equation[data.equation.length - 1] = input;
                             } else {
                                 data.equation.push(input);
@@ -96,7 +101,7 @@ const dataCtrl = (function(){
                 }
             }
         }
-        console.log(data.equation);
+        // console.log(data.equation);
         return true;
     }
 
@@ -218,11 +223,11 @@ const dataCtrl = (function(){
         }
 
         let result = finalEquation.join('');
-        console.log(result);
+        // console.log(result);
 
         try {
             result = eval(result);
-            console.log(result);
+            // console.log(result);
             data.equation = [result];
             data.answer = result;
         } catch(e) {
@@ -404,18 +409,8 @@ const appCtrl = (function(dataCtrl, UICtrl){
         }
     }
 
-    const fullLayout = function() {
-        const calculatorDisplay = document.querySelector(htmlSelectors.calculatorDisplay);
-        // const moreButton = document.querySelector(htmlSelectors.moreButton);
-        // if(calculatorDisplay.offsetWidth === 800) {
-        //     UICtrl.functionLayout();
-        //     moreButton.set
-        // };
-    }
-
     const init = function() {
         console.log('App is initialized....');
-        fullLayout();
         loadedEventListeners();
     }
 

@@ -37,7 +37,7 @@ h1 {
 
 #calculator {
     background-color: #000;
-    width: 400px;
+    width: 800px;
     border-radius: 8px;
 }
 
@@ -56,10 +56,14 @@ h1 {
 }
 
 #display-separator div {
-    width: 24%;
+    width: 49%;
     padding: 1.3rem 0rem;
     background-color: #595959;
     text-align: center;
+}
+
+.more-button {
+    display: none;
 }
 
 #display-separator .block {
@@ -81,7 +85,14 @@ h1 {
     border: none;
     background-color: #595959;
     margin-bottom: 0.2rem;
+}
+
+#basic-layout li {
     width: 24%;
+}
+
+#function-layout li {
+    width: 32%;
 }
 
 .calculator-buttons .buttons-container li button {
@@ -94,8 +105,20 @@ h1 {
     color: #fff;
 }
 
-@media screen and (min-width: 800px) {
+@media screen and (max-width: 800px) {
     #calculator {
-        width: 800px;
+        width: 400px;
+    }
+
+    #function-layout {
+        display: none;
+    }
+
+    .more-button {
+        display: block;
+    }
+
+    #display-separator div {
+        width: 24%;
     }
 }
